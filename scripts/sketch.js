@@ -15,10 +15,13 @@ const GARBAGE = [
   "wikipedia",
   "wiktionary",
   "logo",
-  "padlock"
+  "padlock",
+  "book-new",
+  "disambig gray",
+  "sound-icon",
+  "ambox",
+  ".ogg"
 ];
-
-
 
 const START_WORDS = [
   "you",
@@ -27,8 +30,17 @@ const START_WORDS = [
   "nothing"
 ];
 
+let words = [];
+let things = [];
+
+// prevent users from spamming the same entries over and over again
+let savedQueries = {};
+let savedImages = {};
+
 function setup() {
   createCanvas(window.innerWidth, window.innerHeight);
+
+  words.push(new Word(width/2, height/2, "you start with nothing"));
 }
 
 function windowResized() {
@@ -37,83 +49,122 @@ function windowResized() {
 
 function draw() {
   background(200);
-  textAlign(CENTER, CENTER);
-  textSize(32);
-  
-  text(START_WORDS.join(" "), width/2, height/2);
+
+  words.forEach(function(element) {
+    element.draw(element == focusedWord);
+  });
+
+  things.forEach(function(element) {
+
+    if(element.imgKey == null) {
+      let imageOptions = savedQueries[element.termKey].images;
+      let i = floor(random(imageOptions.length));
+      element.imgKey = imageOptions[i];
+    }
+
+    element.draw(savedImages);
+  });
+
+
 }
 
 function mousePressed() {
 
-  let wordW = textWidth(START_WORDS.join(" "));
-  if(mouseX > width/2 - wordW/2 && mouseX < width/2 + wordW/2
-      && mouseY > height/2 - 10 && mouseY < height/2 + 10) {
-      focusedWord = true;
-  } else {
-    focusedWord = null;
+  // check if we click a word
+  for(let i = 0; i < words.length; i++) {
+    let word = words[i];
+    
+    let wordW = textWidth(word.chars);
+    if(mouseX > word.x - wordW/2 && mouseX < word.x + wordW/2
+        && mouseY > word.y - 13 && mouseY < word.y + 13) {
+        focusWord(word);
+        return;
+    }
   }
 
+  if(focusedWord == null) {
+    //if we havent clicked a word, make a new word, and focus it
+    words.push(new Word(mouseX, mouseY, ""));
+    focusWord(words[words.length - 1]);
+  } else {
+    focusWord(null);
+  }
 }
+
+
+function focusWord(word) {
+
+  if(focusedWord != word && focusedWord != null) {
+    // we are defocussing the previous word
+    // delete word if it has no characters
+    if(focusedWord.chars.length == 0) {
+      words.filter(function(element) {
+        return element != focusedWord;
+      });
+    }
+  }
+
+  focusedWord = word;
+}
+
 
 function keyPressed() {
 
   //TODO: check for focused word
   if(focusedWord != null) {
     if(keyCode == BACKSPACE || keyCode == DELETE) {
-      let i = START_WORDS.length-1;
-      START_WORDS[i] = START_WORDS[i].substring(0, START_WORDS[i].length - 1);
-      if(START_WORDS[i] == "" && START_WORDS.length > 1) {
-        START_WORDS.splice(START_WORDS.length - 1, 1);
-      }
+      focusedWord.chars = focusedWord.chars.substring(0, focusedWord.chars.length - 1);
     }
 
     if(keyCode == ENTER) {
-      let term = START_WORDS.join("%20");
+      let term = focusedWord.chars.replace(" ", "%20");
       let query = IMAGE_SEARCH + term;
-      loadJSON(query, gotImages, 'jsonp');
+
+      if( !(term in savedQueries) ) {
+        savedQueries[term] = {images: []};
+        getImages(query, term);
+      }
+      things.push(new Thing(focusedWord.x, focusedWord.y, 30, 30, term));
     }
 
     if(CHARACTERS.toUpperCase().indexOf(key) > -1) {
-      if(key == " ") {
-        START_WORDS.push("");
-      } else {
-        START_WORDS[START_WORDS.length-1] += key.toLowerCase();
-      }
+      focusedWord.chars += key.toLowerCase();
     }
   }
 
 }
 
-function gotImages(data) {
-  let images = data.query.pages[0].images;
-  
-  if(images != null) {
-    
-    // remove garbage links (aka logos and icons)
-    for(let i = images.length - 1; i >= 0; i--) {
+function getImages(query, term) {
 
-      let garbage = false;
-      for(let j = 0; j < GARBAGE.length; j++) {
-        if(images[i].title.toLowerCase().indexOf(GARBAGE[j]) > -1) {
-          garbage = true;
+  loadJSON(query, function(data) {
+    let images = data.query.pages[0].images;
+    
+    if(images != null) {
+      
+      // remove garbage links (aka logos and icons)
+      for(let i = images.length - 1; i >= 0; i--) {
+
+        let garbage = false;
+        for(let j = 0; j < GARBAGE.length; j++) {
+          if(images[i].title.toLowerCase().indexOf(GARBAGE[j]) > -1) {
+            garbage = true;
+          }
         }
+
+        if(garbage) {
+          images.splice(i, 1);
+        }
+
       }
-
-      if(garbage) {
-        images.splice(i, 1);
+      
+      for(let i = 0; i < images.length; i++) {
+        savedQueries[term].images.push(images[i].title);
+        let imgQuery = IMAGE_FILE + images[i].title.replace(" ", "%20");
+        loadJSON(imgQuery, gotImage, 'jsonp');
       }
-
     }
-    
-    if(images.length > 0) {
-      // choose a random image from the list
-      let rand = floor(random(0, images.length));
-      let randImage = images[rand];
+  }, 'jsonp');
 
-      let imgQuery = IMAGE_FILE + randImage.title.replace(" ", "%20");
-      loadJSON(imgQuery, gotImage, 'jsonp');
-    }
-  }
 }
 
 
@@ -121,12 +172,11 @@ function gotImage(data) {
 
   let pages = data.query.pages;
   let pageKeys = Object.keys(data.query.pages);
+  let imgTitle = pages[pageKeys[0]].title;
   let imgUrl = pages[pageKeys[0]].imageinfo[0].url;
   console.log(imgUrl);
 
-  img = createImage(imgUrl);
-  //img.hide;
-  image(img, 0, 0, width, height);
-
-  //noLoop();
+  loadImage(imgUrl, function(img) {
+    savedImages[imgTitle] = img;
+  })
 }
