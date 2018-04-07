@@ -96,12 +96,13 @@ function focusWord(word) {
       });
     }
 
-    $('canvas').click(function(e){
+    $('#field').click(function(e){
       $(this).focus();
     });
-    $('canvas').click(function(e) {
-        $('canvas').trigger('click');
-    });
+    $('#field').trigger('click');
+    /*$('#field').click(function(e) {
+        $('#field').trigger('click');
+    });*/
   }
 
   focusedWord = word;
