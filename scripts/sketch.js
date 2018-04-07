@@ -76,8 +76,12 @@ function mousePressed() {
     }
   }
 
-  words.push(new Word(mouseX, mouseY, ""));
-  focusWord(words[words.length - 1]);
+  if(focusedWord == null) {
+    words.push(new Word(mouseX, mouseY, ""));
+    focusWord(words[words.length - 1]);
+  } else {
+    focusWord(null);
+  }
 }
 
 
@@ -91,6 +95,13 @@ function focusWord(word) {
         return element != focusedWord;
       });
     }
+
+    $('canvas').click(function(e){
+      $(this).focus();
+    });
+    $('canvas').click(function(e) {
+        $('canvas').trigger('click');
+    });
   }
 
   focusedWord = word;
@@ -115,6 +126,7 @@ function keyPressed() {
       }
       things.push(new Thing(focusedWord.x, focusedWord.y, 100, 100, term));
       focusedWord.chars = "";
+      focusWord(null);
     }
 
     if(CHARACTERS.toUpperCase().indexOf(key) > -1) {
