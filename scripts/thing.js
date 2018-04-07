@@ -14,7 +14,7 @@ class Thing {
             image(images[this.imgKey], this.x, this.y, this.width, this.height);
         } else {
             rectMode(CENTER);
-            rect(this.x, this.y, this.width, this.height)
+            rect(this.x, this.y, this.width, this.height, 50)
         }
     }
 
