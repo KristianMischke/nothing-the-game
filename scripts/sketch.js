@@ -96,10 +96,9 @@ function focusWord(word) {
       });
     }
 
-    $('#field').click(function(e){
-      $(this).focus();
-    });
-    $('#field').trigger('click');
+    $('#field').focus();
+    $('#field').click();
+    //$('#field').trigger('click');
     /*$('#field').click(function(e) {
         $('#field').trigger('click');
     });*/
