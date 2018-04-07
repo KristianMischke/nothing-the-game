@@ -46,6 +46,13 @@ let imageQueue = {
 
 let backgroundMode = "none";
 
+let goals = [
+  new Goal("space",       ["star", "sun"],  4, "starry night"),
+  new Goal("destruction", ["tnt", "gun"],   4, "destruction"),
+  new Goal("party",       ["noisy"],        4, "party"),
+  new Goal("peace",       ["yin", "yang", "yin%20yang", "yoga"], 5, "peace")
+];
+
 function setup() {
   createCanvas(window.innerWidth, window.innerHeight);
 
@@ -56,6 +63,8 @@ function reset() {
   things = [];
   words = [];
 
+  backgroundMode = "none";
+
   words.push(new Word(width/2, height/2, "you start with nothing"));
 }
 
@@ -65,15 +74,32 @@ function windowResized() {
 
 function draw() {
 
-  if(backgroundMode == "none") {
-    background(200);
-  } else if(backgroundMode == "starry night") {
-    background(10, 10, 30);
+  switch(backgroundMode) {
+    case "starry night":
+      background(10, 10, 30);
+      break;
+    case "peace":
+      background(180, 220, 190);
+      break;
+    case "party":
+      background(255);
+      break;
+    case "destruction":
+      background(180, 100, 30);
+      break;
+    default:
+      background(200);
   }
+
+
+  goals.forEach((goal) => {
+    goal.checkGoal = 0;
+  });
 
   for(let i = 0; i < things.length; i++) {
     let element = things[i];
 
+    // update image
     if(element.imgKey == null && savedQueries[element.termKey].populatedGetty && savedQueries[element.termKey].populatedWiki) {
 
       let imageOptions = savedQueries[element.termKey].images;
@@ -86,6 +112,7 @@ function draw() {
 
     }
 
+    // update attributes
     if(!element.gotAttributes && savedQueries[element.termKey].populatedAttributes) {
 
       if(savedQueries[element.termKey].attributes.indexOf("no-gravity") > -1) {
@@ -94,9 +121,18 @@ function draw() {
         element.yVel = 0;
       }
 
+      element.attributes = savedQueries[element.termKey].attributes;
       element.gotAttributes = true;
     }
 
+    // check goals
+    goals.forEach((goal) => {
+      if(goal.objects.indexOf(element.termKey) > -1) {
+        goal.checkGoal++;
+      }
+    });
+
+    //update physics and draw
     element.update(width, height);
     element.draw(savedImages);
   }
@@ -104,6 +140,18 @@ function draw() {
   words.forEach(function(element) {
     let color = (backgroundMode == "starry night") ? 255 : 30
     element.draw(element == focusedWord, color);
+  });
+
+
+  goals.forEach((goal) => {
+    if(goal.checkGoal > goal.amount) {
+      if(!goal.complete) {
+        submitWord(new Word(0, 0, goal.submit));
+        goal.complete = true;
+      }
+    } else {
+      goal.complete = false;
+    }
   });
 
 
@@ -166,7 +214,9 @@ function keyPressed() {
     }
 
     if(keyCode == ENTER && focusedWord.chars != "") {
-      submitFocusedWord();
+      submitWord(focusedWord);
+      focusedWord.chars = "";
+      focusWord(null);
     }
 
     if(CHARACTERS.toUpperCase().indexOf(key) > -1) {
@@ -176,28 +226,60 @@ function keyPressed() {
 
 }
 
-function submitFocusedWord() {
-  switch(focusedWord.chars) {
+function submitWord(word) {
+  switch(word.chars) {
     case 'nothing':
       reset();
       break;
 
     case 'starry night':
-      for(let i = 0; i < random(20, 40); i++) {
+      for(let i = 0; i < random(10, 20); i++) {
         let size = random(10, 100);
         createObject("star", random(0, width), random(0, height), size, size);
+        createObject("shooting star", random(0, width), random(0, height), size, size);
       }
+      words = [];
+      words.push(new Word(width/2, height/2, "welcome to space!"));
+      backgroundMode = word.chars;
+      break;
 
-      backgroundMode = focusedWord.chars;
+    case 'peace':
+      for(let i = 0; i < random(10, 20); i++) {
+        let size = random(10, 100);
+        createObject("flower", random(0, width), random(0, height), size, size);
+        createObject("nature", random(0, width), random(0, height), size, size);
+      }
+      words = [];
+      words.push(new Word(width/2, height/2, "the serenity!"));
+      backgroundMode = word.chars;
+      break;
+
+    case 'destruction':
+      for(let i = 0; i < random(10, 20); i++) {
+        let size = random(10, 100);
+        createObject("smoke", random(0, width), random(0, height), size, size);
+        createObject("destruction", random(0, width), random(0, height), size, size);
+      }
+      words = [];
+      words.push(new Word(width/2, height/2, "BANG!"));
+      backgroundMode = word.chars;
+      break;
+
+    case 'party':
+      for(let i = 0; i < random(10, 20); i++) {
+        let size = random(10, 100);
+        createObject("balloon", random(0, width), random(0, height), size, size);
+        createObject("present", random(0, width), random(0, height), size, size);
+      }
+      words = [];
+      words.push(new Word(width/2, height/2, "Congratulations!"));
+      backgroundMode = word.chars;
       break;
 
     default:
-      createObject(focusedWord.chars, focusedWord.x, focusedWord.y, 100, 100);
+      createObject(word.chars, word.x, word.y, 100, 100);
       break;
   }
-
-  focusedWord.chars = "";
-  focusWord(null);
 }
 
 function createObject(term, x, y, width, height) {
@@ -246,9 +328,12 @@ function getWikipediaText(term) {
             console.log(w + " - v");
         }
 
-        if(["fixed", "center"].indexOf(w) > -1) {
+        if(["fixed", "center", "inflated"].indexOf(w) > -1) {
           savedQueries[term].attributes.push('no-gravity');
-          console.log("no GRAVITY");
+        }
+
+        if(["inflated"].indexOf(w) > -1) {
+          savedQueries[term].attributes.push('float');
         }
 
     }

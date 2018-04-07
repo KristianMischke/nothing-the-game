@@ -8,6 +8,7 @@ class Thing {
         this.imgKey = imgKey;
 
         this.gotAttributes = false;
+        this.attributes = [];
 
         // physics
         this.xVel = 0;
@@ -37,13 +38,17 @@ class Thing {
         if(this.gravity && this.y < height - this.height/2) {
             this.applyForce(0, 1);
         }
+        if(this.attributes.indexOf("float") > -1 && this.y < 0 + this.height/2) {
+            this.applyForce(0, -1);
+        }
 
         if(this.x < this.width/2 || this.x > width - this.width/2) {
 
         }
         if(this.y > height - this.height/2) {
-            //let diff = this.yVel//abs((height - this.height/2) - this.y);
-            //diff *= 0.8;
+            this.yVel *= -0.9;
+        }
+        if(this.y < 0 + this.height/2) {
             this.yVel *= -0.9;
         }
 
