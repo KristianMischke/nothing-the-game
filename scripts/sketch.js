@@ -3,27 +3,58 @@ var apiKey = 'gpssewn2erp4rx353bx38vcm';
 
 const CHARACTERS = "you start with nothing";
 
-const IMAGE_SEARCH = 'https://api.gettyimages.com/v3/search/images/creative?exclude_nudity=true&color=FFFFFF&number_of_people=none&sort_order=best_match&page_size=10&phrase=';
-const WIKI_SEARCH = 'https://en.wikipedia.org/w/api.php?action=query&prop=images&format=json&formatversion=2&titles=';
-const IMAGE_FILE = 'https://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url&format=json&titles=';
+const GETTY_IMAGE_SEARCH = 'https://api.gettyimages.com/v3/search/images/creative?exclude_nudity=true&color=FFFFFF&number_of_people=none&sort_order=best_match&page_size=10&phrase=';
+const WIKI_IMAGE_SEARCH = 'https://en.wikipedia.org/w/api.php?action=query&prop=images&format=json&formatversion=2&titles=';
+const WIKI_IMAGE_FILE = 'https://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url&format=json&titles=';
+
+const WIKI_EXTRACT_SEARCH = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&generator=allpages&gaplimit=3&prop=extracts&exintro=&explaintext=&exsentences=4&exsectionformat=plain&gapfrom=';
+
+const GARBAGE = [
+  "wiki",
+  "wik",
+  "commons",
+  "redirect",
+  "wikipedia",
+  "wiktionary",
+  "logo",
+  "padlock",
+  "book-new",
+  "disambig gray",
+  "sound-icon",
+  "ambox",
+  ".ogg",
+  "icon"
+];
+
+const USE_WIKI_IMAGES = false;
+const USE_GETTY_IMAGES = true;
 
 let focusedWord = null;
 let words = [];
 let things = [];
 
-
 // prevent users from spamming the same entries over and over again
 let savedQueries = {};
 let savedImages = {};
-
 
 let imageQueue = {
   'ready': true,
   'images': []
 };
 
+
+
+let backgroundMode = "none";
+
 function setup() {
   createCanvas(window.innerWidth, window.innerHeight);
+
+  reset();
+}
+
+function reset() {
+  things = [];
+  words = [];
 
   words.push(new Word(width/2, height/2, "you start with nothing"));
 }
@@ -33,16 +64,17 @@ function windowResized() {
 }
 
 function draw() {
-  background(200);
 
-  words.forEach(function(element) {
-    element.draw(element == focusedWord);
-  });
+  if(backgroundMode == "none") {
+    background(200);
+  } else if(backgroundMode == "starry night") {
+    background(10, 10, 30);
+  }
 
   for(let i = 0; i < things.length; i++) {
     let element = things[i];
 
-    if(element.imgKey == null && savedQueries[element.termKey].populated) {
+    if(element.imgKey == null && savedQueries[element.termKey].populatedGetty && savedQueries[element.termKey].populatedWiki) {
 
       let imageOptions = savedQueries[element.termKey].images;
       if(imageOptions.length > 0) {
@@ -54,8 +86,25 @@ function draw() {
 
     }
 
+    if(!element.gotAttributes && savedQueries[element.termKey].populatedAttributes) {
+
+      if(savedQueries[element.termKey].attributes.indexOf("no-gravity") > -1) {
+        element.gravity = false;
+        element.xVel = 0;
+        element.yVel = 0;
+      }
+
+      element.gotAttributes = true;
+    }
+
+    element.update(width, height);
     element.draw(savedImages);
   }
+
+  words.forEach(function(element) {
+    let color = (backgroundMode == "starry night") ? 255 : 30
+    element.draw(element == focusedWord, color);
+  });
 
 
   downloadImages();
@@ -96,8 +145,8 @@ function focusWord(word) {
       });
     }
 
-    $('#field').focus();
-    $('#field').click();
+    //$('#field').focus();
+    //$('#field').click();
     //$('#field').trigger('click');
     /*$('#field').click(function(e) {
         $('#field').trigger('click');
@@ -117,16 +166,7 @@ function keyPressed() {
     }
 
     if(keyCode == ENTER && focusedWord.chars != "") {
-      let term = focusedWord.chars.replace(" ", "%20");
-      let query = IMAGE_SEARCH + term;
-
-      if( !(term in savedQueries) ) {
-        savedQueries[term] = {'images': [], 'populated': false};
-        getImages(query, term);
-      }
-      things.push(new Thing(focusedWord.x, focusedWord.y, 100, 100, term));
-      focusedWord.chars = "";
-      focusWord(null);
+      submitFocusedWord();
     }
 
     if(CHARACTERS.toUpperCase().indexOf(key) > -1) {
@@ -136,13 +176,98 @@ function keyPressed() {
 
 }
 
-function getImages(query, term) {
+function submitFocusedWord() {
+  switch(focusedWord.chars) {
+    case 'nothing':
+      reset();
+      break;
+
+    case 'starry night':
+      for(let i = 0; i < random(20, 40); i++) {
+        let size = random(10, 100);
+        createObject("star", random(0, width), random(0, height), size, size);
+      }
+
+      backgroundMode = focusedWord.chars;
+      break;
+
+    default:
+      createObject(focusedWord.chars, focusedWord.x, focusedWord.y, 100, 100);
+      break;
+  }
+
+  focusedWord.chars = "";
+  focusWord(null);
+}
+
+function createObject(term, x, y, width, height) {
+  term = term.replace(" ", "%20");
+
+  if( !(term in savedQueries) ) {
+    savedQueries[term] = {
+      'images': [],
+      'populatedGetty': !USE_GETTY_IMAGES,
+      'populatedWiki': !USE_WIKI_IMAGES,
+      'populatedAttributes': false,
+      'attributes': []
+    };
+    
+    getWikipediaText(term);
+
+    if(USE_WIKI_IMAGES)
+      getWikipediaImages(term);
+    if(USE_GETTY_IMAGES)
+      getGettyImages(term);
+  }
+
+  things.push(new Thing(x, y, width, height, term));
+}
 
 
+function getWikipediaText(term) {
+  loadJSON(WIKI_EXTRACT_SEARCH + term, function(data) {
+    console.log(data);
+
+    let extract = data.query.pages[0].extract;
+
+    if(extract.indexOf("multiple topics") > -1 || extract.indexOf("refer to") > -1) {
+      extract = data.query.pages[1].extract;
+    }
+
+    let rs = new RiString(extract);
+
+    for(let i = 0; i < rs.words().length; i++)
+    {
+        let w = rs.wordAt(i);
+        if(RiTa.isAdjective(w)) {
+            console.log(w + " - adj");
+        }
+        if(RiTa.isVerb(w)) {
+            console.log(w + " - v");
+        }
+
+        if(["fixed", "center"].indexOf(w) > -1) {
+          savedQueries[term].attributes.push('no-gravity');
+          console.log("no GRAVITY");
+        }
+
+    }
+
+
+    savedQueries[term].populatedAttributes = true;
+
+  }, 'jsonp');//end loadJSON
+}
+
+
+
+
+
+function getGettyImages(term) {
   $.ajax(
     {
       type: 'GET',
-      url: IMAGE_SEARCH + term,
+      url: GETTY_IMAGE_SEARCH + term,
         beforeSend: function (request) {
           request.setRequestHeader("Api-Key", apiKey);
         }
@@ -158,20 +283,18 @@ function getImages(query, term) {
           'imgTitle': data.images[i].display_sizes[0].uri
         });
       }
-      savedQueries[term].populated = true;
+      savedQueries[term].populatedGetty = true;
     }
   )
   .fail(function(data){
       alert(JSON.stringify(data,2))
     }
   );
+}
 
 
-
-
- /* return;
-
-  loadJSON(query, function(data) {
+function getWikipediaImages(term) {
+  loadJSON(WIKI_IMAGE_SEARCH + term, function(data) {
     let images = data.query.pages[0].images;
     
     if(images != null) {
@@ -194,27 +317,24 @@ function getImages(query, term) {
       
       for(let i = 0; i < images.length; i++) {
         savedQueries[term].images.push(images[i].title);
-        let imgQuery = IMAGE_FILE + images[i].title.replace(" ", "%20");
-        loadJSON(imgQuery, gotImage, 'jsonp');
+        let imgQuery = WIKI_IMAGE_FILE + images[i].title.replace(" ", "%20");
+        loadJSON(imgQuery, function(data) {
+          let pages = data.query.pages;
+          let pageKeys = Object.keys(data.query.pages);
+          let imgTitle = pages[pageKeys[0]].title;
+          let imgUrl = pages[pageKeys[0]].imageinfo[0].url;
+          //console.log(imgUrl);
+
+          imageQueue.images.push({
+            'imgUrl': imgUrl,
+            'imgTitle': imgTitle
+          });
+        }, 'jsonp');//end loadJSON
       }
+      savedQueries[term].populatedWiki = true;
     }
-  }, 'jsonp');*/
-
+  }, 'jsonp');//end loadJSON
 }
-
-
-/*function gotImage(data) {
-
-  let pages = data.query.pages;
-  let pageKeys = Object.keys(data.query.pages);
-  let imgTitle = pages[pageKeys[0]].title;
-  let imgUrl = pages[pageKeys[0]].imageinfo[0].url;
-  console.log(imgUrl);
-
-  loadImage(imgUrl, function(img) {
-    savedImages[imgTitle] = img;
-  });
-}*/
 
 
 
