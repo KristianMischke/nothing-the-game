@@ -46,10 +46,10 @@ class Thing {
 
         }
         if(this.y > height - this.height/2) {
-            this.yVel *= -0.9;
+            this.yVel *= -0.7;
         }
         if(this.y < 0 + this.height/2) {
-            this.yVel *= -0.9;
+            this.yVel *= -0.7;
         }
 
 
