@@ -47,10 +47,10 @@ let imageQueue = {
 let backgroundMode = "none";
 
 let goals = [
-  new Goal("space",       ["star", "sun"],  4, "starry night"),
-  new Goal("destruction", ["tnt", "gun"],   4, "destruction"),
-  new Goal("party",       ["noisy"],        4, "party"),
-  new Goal("peace",       ["yin", "yang", "yin%20yang", "yoga"], 5, "peace")
+  new Goal("space",       ["star", "sun", "night"], 3, "starry night"),
+  new Goal("destruction", ["tnt", "gun", "shot", "rust", "ruin"], 3, "destruction"),
+  new Goal("party",       ["noisy", "toy"], 3, "party"),
+  new Goal("peace",       ["yin", "yang", "yin%20yang", "yoga"], 3, "peace")
 ];
 
 function setup() {
@@ -127,9 +127,11 @@ function draw() {
 
     // check goals
     goals.forEach((goal) => {
-      if(goal.objects.indexOf(element.termKey) > -1) {
-        goal.checkGoal++;
-      }
+      goal.objects.forEach((object) => {
+        if(object.indexOf(RiTa.singularize(element.termKey)) > -1) {
+          goal.checkGoal++;
+        }
+      });
     });
 
     //update physics and draw
