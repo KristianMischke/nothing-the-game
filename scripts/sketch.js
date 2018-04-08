@@ -161,7 +161,7 @@ function draw() {
   downloadImages();
 
   if(!rules) {
-    alert("You start with nothing!\n\n" + "There are currently 4 goals to this 'game'\n" + "-space\n"+ "-peace\n"+ "-destruction\n"+ "-party\n" + "You must add 3 objects related to the goal to achieve it.\n" + "Add objects by clicking, typing and pressing enter... The catch is, you only get to use the letters from 'you start with nothing'.\n\n" + "Enter 'nothing' to clear the screen");
+    alert("You start with nothing!\n\n" + "There are currently 4 goals to this 'game'\n" + "-space\n"+ "-peace\n"+ "-destruction\n"+ "-party\n" + "You must add 3 objects related to the goal to achieve it.\n" + "Add objects by clicking, typing and pressing enter... The catch is, you only get to use the letters from 'you start with nothing'.\n\n" + "Enter 'nothing' to clear the screen\n" + "Thanks to the Getty Image API for the images, and the Wikipedia API for retrieving information about words.\n" + "Graphics made with P5.js, word processing done with RiTa.js");
     rules = true;
   }
 }
