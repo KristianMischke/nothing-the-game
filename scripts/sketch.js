@@ -47,10 +47,10 @@ let imageQueue = {
 let backgroundMode = "none";
 
 let goals = [
-  new Goal("space",       ["star", "sun", "night"], 3, "starry night"),
-  new Goal("destruction", ["tnt", "gun", "shot", "rust", "ruin"], 3, "destruction"),
-  new Goal("party",       ["noisy", "toy"], 3, "party"),
-  new Goal("peace",       ["yin", "yang", "yin%20yang", "yoga", "grass", "air"], 3, "peace")
+  new Goal("space",       ["star", "sun", "night", "space", "saturn"], 3, "starry night"),
+  new Goal("destruction", ["tnt", "gun", "shot", "rust", "ruin", "destruction"], 3, "destruction"),
+  new Goal("party",       ["noisy", "toy", "party"], 3, "party"),
+  new Goal("peace",       ["yin", "yang", "yin%20yang", "yoga", "grass", "air", "peace"], 3, "peace")
 ];
 
 let rules = false;
@@ -129,10 +129,18 @@ function draw() {
 
     // check goals
     goals.forEach((goal) => {
+      let foundCheck = false;
       goal.objects.forEach((object) => {
-        if(object.indexOf(RiTa.singularize(element.termKey)) > -1) {
+        if(object.indexOf(RiTa.singularize(element.termKey)) > -1 && !foundCheck) {
           goal.checkGoal++;
+          foundCheck = true;
         }
+        element.attributes.forEach((attr) => {
+          if(object.indexOf(RiTa.singularize(attr)) > -1 && !foundCheck) {
+            goal.checkGoal++;
+            foundCheck = true;
+          }
+        });
       });
     });
 
@@ -341,6 +349,19 @@ function getWikipediaText(term) {
 
         if(["inflated"].indexOf(w) > -1) {
           savedQueries[term].attributes.push('float');
+        }
+
+        if(["planet", "solar", "star"].indexOf(w) > -1) {
+          savedQueries[term].attributes.push('space');
+        }
+        if(["destroy", "damage"].indexOf(w) > -1) {
+          savedQueries[term].attributes.push('destruction');
+        }
+        if(["peace"].indexOf(w) > -1) {
+          savedQueries[term].attributes.push('peace');
+        }
+        if(["toy", "party", "celebration"].indexOf(w) > -1) {
+          savedQueries[term].attributes.push('party');
         }
 
     }
