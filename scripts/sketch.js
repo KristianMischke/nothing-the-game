@@ -53,6 +53,8 @@ let goals = [
   new Goal("peace",       ["yin", "yang", "yin%20yang", "yoga", "grass", "air"], 3, "peace")
 ];
 
+let rules = false;
+
 function setup() {
   createCanvas(window.innerWidth, window.innerHeight);
 
@@ -146,7 +148,7 @@ function draw() {
 
 
   goals.forEach((goal) => {
-    if(goal.checkGoal > goal.amount) {
+    if(goal.checkGoal >= goal.amount) {
       if(!goal.complete) {
         submitWord(new Word(0, 0, goal.submit));
         goal.complete = true;
@@ -156,9 +158,12 @@ function draw() {
     }
   });
 
-
   downloadImages();
 
+  if(!rules) {
+    alert("You start with nothing!\n\n" + "There are currently 4 goals to this 'game'\n" + "-space\n"+ "-peace\n"+ "-destruction\n"+ "-party\n" + "You must add 3 objects related to the goal to achieve it.\n" + "Add objects by clicking, typing and pressing enter... The catch is, you only get to use the letters from 'you start with nothing'.\n\n" + "Enter 'nothing' to clear the screen");
+    rules = true;
+  }
 }
 
 function mousePressed() {
